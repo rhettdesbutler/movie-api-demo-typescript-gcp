@@ -1,7 +1,7 @@
 import express, { Application } from 'express'
 import { exampleRouter } from './routes/routes'
 
-const PORT = 8080
+const PORT = Number(process.env.PORT) | 4000
 
 const app: Application = express()
 
