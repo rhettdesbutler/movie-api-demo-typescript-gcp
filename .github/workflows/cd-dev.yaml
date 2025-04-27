@@ -42,7 +42,7 @@ jobs:
         with:
            token_format: 'access_token'
            workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
-           service_account: 'tm-tr-wld-cloud-deploy-${{ env.ENV }}@${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }}.iam.gserviceaccount.com'
+           service_account: 'api-services-${{ env.ENV }}@${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }}.iam.gserviceaccount.com'
 
             - name: Setup gcloud
               uses: google-github-actions/setup-gcloud@v0
@@ -90,7 +90,6 @@ jobs:
         permissions:
             contents: 'read'
             id-token: 'write'
-        # Add Service name AND instance name (required)!
         strategy:
             matrix:
                 include:
