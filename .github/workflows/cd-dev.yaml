@@ -1,0 +1,138 @@
+name: 'CD dev environment'
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  ENV: 'dev'
+  REGION: 'europe-west1'
+  DOCKER_IMAGE_FOLDER: 'docker'
+  SA_ACC_PREFIX: 'api-services'
+  PROJECT_ID_PREFIX: 'magic-movies'
+  CPU: '1'
+  MEMORY: '512Mi'
+  MIN_INSTANCE: '1'
+  MAX_INSTANCE: '2'
+
+jobs:
+  build:
+    name: Docker build and Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    strategy:
+      matrix:
+        include:
+          - service_name: 'main-api'
+
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set build env variables
+        run: |
+          echo "ARTIFACT_REPOSITORY=$REGION-docker.pkg.$ENV/$PROJECT_ID_PREFIX-$ENV/recsrc-services" >> $GITHUB_ENV
+          echo "BUILD_IMAGE_NAME=${{ matrix.service_name }}-$ENV" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ matrix.service_name }}-$ENV:latest" >> $GITHUB_ENV
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+           token_format: 'access_token'
+           workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
+           service_account: 'tm-tr-wld-cloud-deploy-${{ env.ENV }}@${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }}.iam.gserviceaccount.com'
+
+            - name: Setup gcloud
+              uses: google-github-actions/setup-gcloud@v0
+
+            - name: Configure docker for GCP
+              run: gcloud auth configure-docker
+
+            - name: Set up Docker Buildx
+              id: buildx
+              uses: docker/setup-buildx-action@v2
+              with:
+                  install: true
+                  version: v0.9.1
+
+            - name: Cache Docker layers
+              uses: actions/cache@v3
+              with:
+                  path: /tmp/.buildx-cache
+                  key: ${{ runner.os }}-buildx-${{ github.sha }}
+                  restore-keys: |
+                      ${{ runner.os }}-buildx-
+
+            - name: Login to GAR
+              uses: docker/login-action@v2
+              with:
+                  registry: ${{ env.REGION }}-docker.pkg.dev
+                  username: oauth2accesstoken
+                  password: ${{ steps.auth.outputs.access_token }}
+
+            - name: Build and Push Docker image
+              id: docker_build
+              uses: docker/build-push-action@v3
+              with:
+                  context: '.'
+                  file: './${{ env.DOCKER_IMAGE_FOLDER }}/${{ matrix.service_name }}/${{ matrix.service_name }}.dockerfile'
+                  tags: ${{ env.ARTIFACT_REPOSITORY }}/${{ env.BUILD_IMAGE_NAME }},${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}
+                  push: true
+                  cache-from: type=gha, scope=${{ github.workflow }}
+                  cache-to: type=gha, scope=${{ github.workflow }}
+
+    deploy:
+        name: Cloud Deployment
+        runs-on: ubuntu-latest
+        needs: [build]
+        permissions:
+            contents: 'read'
+            id-token: 'write'
+        # Add Service name AND instance name (required)!
+        strategy:
+            matrix:
+                include:
+                    - service_name: main-api
+                      sql_instance: test-movies:europe-west1:magic-movies-db
+        # Done!
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set deploy env variables
+              run: |
+                  echo "ARTIFACT_REPOSITORY=$REGION-docker.pkg.$ENV/$PROJECT_ID_PREFIX-$ENV/recsrc-services" >> $GITHUB_ENV
+                  echo "BUILD_IMAGE_NAME=${{ matrix.service_name }}-$ENV" >> $GITHUB_ENV
+                  echo "IMAGE_NAME=${{ matrix.service_name }}-$ENV:latest" >> $GITHUB_ENV
+
+            - id: 'auth'
+              name: 'Authenticate to Google Cloud'
+              uses: 'google-github-actions/auth@v0'
+              with:
+                  token_format: 'access_token'
+                  workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
+                  service_account: 'tm-tr-wld-cloud-deploy-${{ env.ENV }}@${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }}.iam.gserviceaccount.com'
+
+            - id: 'gcloud-setup'
+              name: Setup gcloud
+              uses: google-github-actions/setup-gcloud@v0
+
+            - name: 'Deploy to Cloud Run'
+              id: deploy
+              uses: 'google-github-actions/deploy-cloudrun@v1'
+              with:
+                  service: ${{ matrix.service_name }}-${{ env.ENV }}
+                  image: ${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}
+                  region: ${{ env.REGION }}
+                  flags: >
+                      --project ${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }} 
+                      --cpu ${{ env.CPU }} 
+                      --memory ${{ env.MEMORY }} 
+                      --min-instances ${{ env.MIN_INSTANCE }} 
+                      --max-instances ${{ env.MAX_INSTANCE }} 
+                      --platform managed 
+                      --region ${{ env.REGION }} 
+                      --service-account ${{ env.SERVICE_ACCOUNT_PREFIX }}-${{ env.ENV }}@${{ env.PROJECT_ID_PREFIX }}-${{ env.ENV }}.iam.gserviceaccount.com
+                      --add-cloudsql-instances ${{ matrix.sql_instance }}
+                      --env-vars-file ./${{ env.DOCKER_IMAGE_FOLDER }}/${{ matrix.service_name }}/${{ env.ENV }}/.env.vars.yaml 
+                      --no-allow-unauthenticated

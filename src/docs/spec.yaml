@@ -1,0 +1,86 @@
+openapi: 3.0.0
+
+info:
+  description: 'A magical API to provide information on movies from our database'
+  version: 1.0.0
+  title: 'Magic Movies API'
+  contact:
+    name: 'John Doe'
+    email: 'john.doe@testmail.com'
+
+paths:
+  /movie:
+    get:
+      summary: 'Returns a single movie given its title'
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'JSON object containting movie title, release year, genre, actors, directors etc. is returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+
+components:
+  schemas:
+    MovieResponse:
+      type: object
+      properties:
+        magicMovies:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                properties:
+                  id:
+                    type: 'integer'
+                    format: 'int64'
+                  title:
+                    type: 'string'
+                  genre:
+                    type: 'string'
+                    enum:
+                      - Romance
+                      - Horror
+                      - Comedy
+                      - Action
+                      - Adventure
+                  year:
+                    type: 'string'
+                    format: 'date'
+                    example: '20-Jan-1990'
+            message:
+              type: 'string'
+            records:
+              type: 'integer'
+              format: 'int64'
+            status:
+              type: 'integer'
+              format: 'int64'
+    ErrorResponse:
+      type: object
+      properties:
+        magicMovies:
+          type: object
+          properties:
+            status:
+              type: 'integer'
+              format: 'int64'
+            message:
+              type: 'string'
+            error:
+              type: 'string'
+
+servers:
+  - url: http://127.0.0.1/magicmovies/api/service
+
+externalDocs:
+  url: 'http://magicmoviesnotreal.com'
+
+security:
+  - bearerAuth: []
