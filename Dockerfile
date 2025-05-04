@@ -1,12 +1,14 @@
 FROM node:23-slim
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY package*.json ./
 
 RUN npm install
 
-COPY . .
+COPY ./ ./
+
+#COPY ../docker/db/10-init.sql /docker-entrypoint-initdb.d/10-init.sql
 
 RUN npm run build
 

@@ -7,6 +7,8 @@ yarn-error.log*
 lerna-debug.log*
 .DS_Store
 
+docker/db/postgres_data
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
