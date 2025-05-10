@@ -1,4 +1,17 @@
 services:
+  app:
+    container_name: app
+    build:
+      context: ../
+      dockerfile: ./Dockerfile
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://postgres:1234secure&D3@postgres:5432/magic_db
+      NODE_ENV: dev
+      PORT: 8080
+    ports:
+      - '8080:8080'
   db:
     container_name: postgres
     image: postgres
@@ -17,6 +30,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234secure&D3
       POSTGRES_DB: magic_db
+
+#  migrations:
+#    image: migrate/migrate
+#    command: -database postgres://postgres:1234secure&D3@magic_db:5432/magic_db?sslmode=disable -path /migrations up
+#    volumes:
+#      - ./db/migrations:/migrations
+#    working_dir: /migrations
+#    depends_on:
+#     - db
+
 networks:
   db:
     driver: bridge

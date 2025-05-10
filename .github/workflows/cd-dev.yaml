@@ -36,9 +36,9 @@ jobs:
           echo "ARTIFACT_REPOSITORY=$REGION-docker.pkg.$ENV/$PROJECT_ID_PREFIX-$ENV/recsrc-services" >> $GITHUB_ENV
           echo "BUILD_IMAGE_NAME=${{ matrix.service_name }}-$ENV" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ matrix.service_name }}-$ENV:latest" >> $GITHUB_ENV
-      - id: 'auth'
+      - uses: 'google-github-actions/auth@v2'
+        id: 'auth'
         name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v2'
         with:
            token_format: 'access_token'
            workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'

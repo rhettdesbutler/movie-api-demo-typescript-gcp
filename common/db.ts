@@ -3,7 +3,7 @@ import { logger } from './logger'
 
 export class Database {
 	async getPassword(): Promise<string> {
-		return '1234'
+		return '1234secure&D3'
 	}
 
 	async connect(db?: string): Promise<Knex | undefined> {
@@ -13,14 +13,14 @@ export class Database {
 		if (db) {
 			database = db
 		} else {
-			database = String(process.env.DB_PASSWORD)
+			database = String(process.env.DB_MOVIE)
 		}
 
 		if (String(process.env.LOCAL) === 'true') {
 			dbPassword = '1234secure&D3'
-			dbHost = '127.0.0.1'
+			dbHost = String(process.env.DB_HOST)
 		} else {
-			dbPassword = '1234secure&D3'
+			dbPassword = await this.getPassword()
 			dbHost = `/cloudsql/${String(process.env.DB_HOST)}`
 		}
 
@@ -37,9 +37,11 @@ export class Database {
 		connection = knex({
 			client: 'pg',
 			connection: {
-				user: process.env.DB_USERNAME,
+				user: process.env.DB_USER,
+				password: dbPassword,
 				database: database,
 				host: dbHost,
+				port: Number(process.env.DB_PORT),
 				pool: {
 					max: 2,
 					min: 1,

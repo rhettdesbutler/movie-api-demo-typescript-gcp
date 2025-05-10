@@ -1,1 +1,1 @@
-export * from './test.function'
+export * from './applyFiltering.function'
