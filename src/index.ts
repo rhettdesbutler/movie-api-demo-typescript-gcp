@@ -2,6 +2,7 @@ import express, { Application } from 'express'
 import dotenv from 'dotenv'
 import morgan from 'morgan'
 import helmet from 'helmet'
+import swaggerUi from 'swagger-ui-express'
 
 dotenv.config({ path: process.cwd() + '/.env' })
 
@@ -16,6 +17,8 @@ const PORT = Number(process.env.PORT) | 8080
 const routes = require('./routes/routes')
 
 const swagger = YAML.load('./src/docs/spec.yaml')
+
+app.use('/docs', swaggerUi.setup(swagger))
 
 app.use(express.json({ limit: '50mb' }))
 app.use(
