@@ -32,14 +32,17 @@ jobs:
           if [[ "${{ github.base_ref }}" == "dev" || "${{ github.ref }}" == "refs/heads/dev" ]]; then
             echo "env=dev" >> $GITHUB_OUTPUT
             echo "project-id=magic-movies" >> $GITHUB_OUTPUT
+            echo "project-number=${{ secrets.PROJECT_NUMBER_DEV }}" >> $GITHUB_OUTPUT
           fi
           if [[ "${{ github.base_ref }}" == "stage" || "${{ github.ref }}" == "refs/heads/stage" ]]; then
             echo "env=stage" >> $GITHUB_OUTPUT
             echo "project-id=magic-movies" >> $GITHUB_OUTPUT
+            echo "project-number=${{ secrets.PROJECT_NUMBER_STAGE }}" >> $GITHUB_OUTPUT
           fi
           if [[ "${{ github.base_ref }}" == "main" || "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "env=main" >> $GITHUB_OUTPUT
             echo "project-id=magic-movies" >> $GITHUB_OUTPUT
+            echo "project-number=${{ secrets.PROJECT_NUMBER_MAIN }}" >> $GITHUB_OUTPUT
           fi
 
   build:
@@ -67,7 +70,7 @@ jobs:
         name: 'Authenticate to Google Cloud'
         with:
           token_format: 'access_token'
-          workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
+          workload_identity_provider: 'projects/${{ needs.init.outputs.project-number }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
           service_account: 'api-services-${{ needs.init.outputs.env }}@${{ needs.init.outputs.project-id }}-${{ needs.init.outputs.env }}.iam.gserviceaccount.com'
 
       - name: Setup gcloud
@@ -135,7 +138,7 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
           token_format: 'access_token'
-          workload_identity_provider: 'projects/${{ secrets.PROJECT_NUMBER_DEV }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
+          workload_identity_provider: 'projects/${{ needs.init.outputs.project-number }}/locations/global/workloadIdentityPools/gh-gcp-oidc-pool/providers/gh-gcp-oidc-provider'
           service_account: 'tm-tr-wld-cloud-deploy-${{ needs.init.outputs.env }}@${{ needs.init.outputs.project-id }}-${{ needs.init.outputs.env }}.iam.gserviceaccount.com'
 
       - id: 'gcloud-setup'
