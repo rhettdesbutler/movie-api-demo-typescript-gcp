@@ -5,6 +5,7 @@ export interface MagicMovieResponse {
 		totalRecords: number
 		recordsFetched: number
 		data: MagicMovie[]
+		nextPage?: number
 		error?: string
 	}
 }

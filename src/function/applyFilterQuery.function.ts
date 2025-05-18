@@ -1,5 +1,6 @@
 import { Knex } from 'knex'
 import { filterMapper } from '../utils/filterMapper'
+import { logger } from '../../common/logger'
 
 const allowedFilters = {
 	title: ['like'],
@@ -18,13 +19,13 @@ const operator = {
 	gte: '>=',
 	lte: '<=',
 }
-export const applyFiltering = async (
-	connection: Knex,
-	table: string,
-	filters: any
-) => {
-	let dbQuery = connection(table)
-
+export const applyQueryFilter = async (
+	dbQuery: Knex.QueryBuilder,
+	filters: any,
+	single: boolean,
+	page?: number,
+	size?: number
+): Promise<{ results: any; nextPage?: number }> => {
 	for (const field in filters) {
 		let fvalue = filters[field]
 
@@ -36,7 +37,9 @@ export const applyFiltering = async (
 			for (const opKey in fvalue) {
 				let opVal = fvalue[opKey]
 
-				console.log(`sc: ${opKey}, ${field}, ${opVal}`)
+				logger.debug({
+					msg: `complex filter query: ${opKey}, ${field}, ${opVal}`,
+				})
 				switch (opKey) {
 					case 'gte':
 						dbQuery.where(field, '>=', opVal)
@@ -54,24 +57,39 @@ export const applyFiltering = async (
 						dbQuery.where(field, '=', opVal)
 						break
 					case 'like':
-						dbQuery.where(field, 'LIKE', `%${opVal}%`)
+						dbQuery.where(field, 'ILIKE', `%${opVal}%`)
 						break
 				}
 			}
 		} else if (typeof fvalue === 'string' && fvalue.includes(',')) {
 			const list = fvalue.split(',').map((v) => v.trim())
+
+			logger.debug({
+				msg: `list filter query: ${field}, ${list}`,
+			})
 			dbQuery.whereIn(field, list)
-		} else if (field === 'title') {
-			dbQuery
-				.whereRaw(`to_tsvector('english', title) @@ to_tsquery('english', ?)`, [
-					fvalue,
-				])
-				.select('*')
 		} else {
-			console.log(`basic`)
-			dbQuery.where(field, fvalue).select('*')
+			logger.debug({
+				msg: `basic filter query: ${field}, ${fvalue}`,
+			})
+			dbQuery.where(field, fvalue)
 		}
 	}
 
-	return dbQuery.select('*')
+	if (single === true) {
+		return dbQuery.select('*').limit(1)
+	} else {
+		if (page && size) {
+			let dbResults = await dbQuery
+				.select('*')
+				.offset((page - 1) * size)
+				.limit(size)
+			return {
+				results: dbResults,
+				nextPage: page + 1,
+			}
+		} else {
+			return dbQuery.select('*')
+		}
+	}
 }

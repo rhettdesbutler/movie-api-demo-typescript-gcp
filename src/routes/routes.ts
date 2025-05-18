@@ -4,6 +4,8 @@ import { Database } from '../../common/db'
 import { GetMagicMoviesController } from '../controllers/get-controller'
 import { MagicMovieResponse } from '../../common/interfaces/responses.interface'
 import { responseHandler } from '../../common/reponseHandler'
+import { logger } from '../../common/logger'
+import { keyExists } from '../../common/utils'
 
 const router = Router()
 
@@ -20,10 +22,7 @@ router.get(
 		let response: MagicMovieResponse
 		let status: number
 		if (conn) {
-			let filters = req.query
-
-			console.log(filters)
-
+			let filters: any = req.query
 			let { data, message } = await getMovieController.getMovie(
 				conn,
 				String(process.env.DB_MOVIES_TABLE),
@@ -34,6 +33,14 @@ router.get(
 
 			status = responsePayload.status
 			response = responsePayload.response
+
+			if (status > 299) {
+				logger.info(
+					`Error in movie retrieval occurred: ${response.magicMovies.error}`
+				)
+			}
+
+			await db.closeConnection(conn)
 		} else {
 			status = 500
 			response = {
@@ -68,16 +75,39 @@ router.get(
 		let response: MagicMovieResponse
 		let status: number
 		if (conn) {
-			let { data, message } = await getMovieController.getMovie(
-				conn,
-				String(process.env.DB_MOVIES_TABLE),
-				'terminator'
-			)
+			let filters: any = req.query
 
-			let responsePayload = responseHandler(data, message)
+			let page: number | undefined = undefined
+
+			if (keyExists(filters, 'page') === true) {
+				page = Number(filters['page'])
+
+				if (Number(page) <= 1) {
+					page = 1
+				}
+
+				delete filters['page']
+			}
+
+			let { data, message, totalRecords, nextPage } =
+				await getMovieController.getMovies(
+					conn,
+					String(process.env.DB_MOVIES_TABLE),
+					filters,
+					page
+				)
+
+			let responsePayload = responseHandler(
+				data,
+				totalRecords,
+				nextPage,
+				message
+			)
 
 			status = responsePayload.status
 			response = responsePayload.response
+
+			await db.closeConnection(conn)
 		} else {
 			status = 500
 			response = {

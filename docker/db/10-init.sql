@@ -66,3 +66,7 @@ FROM
 '/Users/rhettbutler/Projects/Github/API-demo/TMDB_movie_dataset_v11.csv'
 DELIMITER ','
 CSV HEADER;
+
+
+CREATE INDEX idx_id
+ON magic_movie_catalogue(id)

@@ -1,7 +1,9 @@
 import { MagicMovie, MagicMovieResponse } from './interfaces'
 
 export const responseHandler = (
-	data: MagicMovie[] | undefined,
+	data: MagicMovie[] | undefined | string,
+	totalRecords: number,
+	page?: number,
 	error?: string
 ): {
 	status: number
@@ -9,12 +11,33 @@ export const responseHandler = (
 } => {
 	let status = 200
 	let response: MagicMovieResponse
-	if (data) {
+	if (data && typeof data !== 'string') {
 		response = {
 			magicMovies: {
-				totalRecords: data.length,
+				totalRecords: totalRecords,
 				recordsFetched: data.length,
 				data: data,
+			},
+		}
+
+		if (page) {
+			response = {
+				magicMovies: {
+					totalRecords: totalRecords,
+					recordsFetched: data.length,
+					data: data,
+					nextPage: page,
+				},
+			}
+		}
+	} else if (data && typeof data === 'string') {
+		status = 404
+		response = {
+			magicMovies: {
+				totalRecords: 0,
+				recordsFetched: 0,
+				data: [],
+				error: `No movie found: ${error}`,
 			},
 		}
 	} else {
