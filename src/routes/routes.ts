@@ -2,10 +2,18 @@ import { Router, Request, Response, NextFunction } from 'express'
 import { Knex } from 'knex'
 import { Database } from '../../common/db'
 import { GetMagicMoviesController } from '../controllers/get-controller'
-import { MagicMovieResponse } from '../../common/interfaces/responses.interface'
-import { responseHandler } from '../../common/reponseHandler'
+import {
+	MagicMoviePostResponse,
+	MagicMovieResponse,
+} from '../../common/interfaces/responses.interface'
+import {
+	postResponseHandler,
+	responseHandler,
+} from '../../common/reponseHandler'
 import { logger } from '../../common/logger'
 import { keyExists } from '../../common/utils'
+import { MagicMovie } from '../../common/interfaces'
+import { PostMagicMoviesController } from '../controllers'
 
 const router = Router()
 
@@ -115,6 +123,52 @@ router.get(
 					totalRecords: 0,
 					recordsFetched: 0,
 					data: [],
+					error: `Internal Server Error`,
+				},
+			}
+		}
+
+		return res
+			.status(status)
+			.set({
+				'Content-Type': 'application/json',
+			})
+			.send(response)
+	}
+)
+
+router.post(
+	'/magicmovies/movie',
+	async (req: Request, res: Response, next: NextFunction) => {
+		const db: Database = new Database()
+
+		const postMovieController: PostMagicMoviesController =
+			new PostMagicMoviesController()
+
+		const conn: Knex | undefined = await db.connect()
+
+		let response: MagicMoviePostResponse
+		let status: number
+		if (conn) {
+			let movieToAdd: MagicMovie = req.body
+
+			let { status, message, error } = await postMovieController.postMovie(
+				conn,
+				String(process.env.DB_MOVIES_TABLE),
+				movieToAdd
+			)
+
+			let responsePayload = postResponseHandler(status, message, error)
+
+			response = responsePayload.response
+
+			await db.closeConnection(conn)
+		} else {
+			status = 500
+			response = {
+				magicMovies: {
+					status: status,
+					message: `Internal Server error`,
 					error: `Internal Server Error`,
 				},
 			}

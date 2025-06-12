@@ -1,4 +1,8 @@
-import { MagicMovie, MagicMovieResponse } from './interfaces'
+import {
+	MagicMovie,
+	MagicMoviePostResponse,
+	MagicMovieResponse,
+} from './interfaces'
 
 export const responseHandler = (
 	data: MagicMovie[] | undefined | string,
@@ -51,6 +55,39 @@ export const responseHandler = (
 			},
 		}
 	}
+	return {
+		status: status,
+		response: response,
+	}
+}
+
+export const postResponseHandler = (
+	status: number,
+	message: string,
+	error?: string
+): {
+	status: number
+	response: MagicMoviePostResponse
+} => {
+	let response: MagicMoviePostResponse
+
+	if (!error) {
+		response = {
+			magicMovies: {
+				status: status,
+				message: message,
+			},
+		}
+	} else {
+		response = {
+			magicMovies: {
+				status: status,
+				message: message,
+				error: `Failed to add the movie to the database: ${error}`,
+			},
+		}
+	}
+
 	return {
 		status: status,
 		response: response,

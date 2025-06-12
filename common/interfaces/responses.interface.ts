@@ -9,3 +9,11 @@ export interface MagicMovieResponse {
 		error?: string
 	}
 }
+
+export interface MagicMoviePostResponse {
+	magicMovies: {
+		status: number
+		message: string
+		error?: string
+	}
+}
